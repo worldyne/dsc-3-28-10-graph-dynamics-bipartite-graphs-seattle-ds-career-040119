@@ -107,7 +107,7 @@ RB.nodes(data=True)
 ![png](index_files/index_11_1.png)
 
 
-### Davis Club
+## Davis Club
 
 Let's use the data collected by Davis et al. in 1930s about the observed attendance at 14 social events by 18 women in a Southern state of the USA. [Click here ](https://networkx.github.io/documentation/stable/auto_examples/algorithms/plot_davis_club.html) to see the implementation in networkx.  The nodes in the graph are both women and events, and each women is linked to the events that she attended.
 
@@ -163,7 +163,7 @@ list(D.nodes(data=True))
 
 See how all the women are connected only through the events E1-14 that they have attended. There is no direct link between any women. 
 
-### Graph Projections
+## Graph Projections
 
 We can extaract the uni-partite graph with only women using **Graph Projections**. We can weight the edges of the projection using different criteria, for instance, we can make the weight of an edge to represent the number of event that the two women attended. See NetworkX documentation for [bipartite projections](https://networkx.github.io/documentation/networkx-1.9.1/reference/generated/networkx.algorithms.bipartite.projection.weighted_projected_graph.html). In such a graph, all women , who attended the same event(s) will be connected together as neighbors. 
 

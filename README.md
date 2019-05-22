@@ -1,487 +1,218 @@
 
-# Network Dynamics: Bipartite Graphs
+# Clustering Networks
 
 ## Introduction
 
-A bipartite graph is a graph in which a set of graph vertices can be divided into two independent sets, and no two graph vertices within the same set are adjacent. In other words, bipartite graphs can be considered as equal to two colorable graphs. Bipartite graphs are mostly used in modeling relationships, especially between two entire separate classes of object. A bipartite graph is also known as a bigraph. In this lesson, we shall look at how to describe and analyze such graphs in networkx.
-
+You've now looked at some basic measures of nodes and their relationships to one another. Expanding upon this analysis of networks, it is natural to focus on larger structures within the network. In this lesson you'll explore clusters within networks such as subcultures, social circles and cliques. 
 
 ## Objectives
+
 You will be able to:
 
-- Understand and describe Bipartite graphs in comparison with uni-partite graphs
-- Define and analyze bipartite graphs in networkx
-- Understand how centrality measures work with bipartite graphs
+* Discuss various approaches to clustering networks
+* Implement clustering via NetworkX
+* Define clique
 
-## Definition
-Bipartite graphs $B = (U, V, E)$ have two node sets $U$,$V$ and edges in $E$ that only connect nodes from opposite sets. It is common in the literature to use an spatial analogy referring to the two node sets as top and bottom nodes.
-<img src="bp1.png" width=300>
+## Approaches to Clustering
 
-The bipartite algorithms are imported as shown below:
+You've already started to get a vague sense of clustering: in the previous lab, you attempted to find individuals who bridged two different social circles within a larger network. These key individuals whom connect the network are then the glue that holds the network together. From this, there are two ways to approach clustering groups and subgroups in networks: one is from the bottom up, building smaller networks from central nodes on out, and the other from the top down, removing central nodes from the full network and observing how the network splinters into factions.  
 
+One method exhibiting the former approach to clustering is k-clique clustering. A clique is a subset of nodes which are adjacent to all the other nodes within the clique. The most simple example is with three nodes:
 
-```python
-from networkx.algorithms import bipartite
-```
+<img src="images/graph_cliques.png" width=650>
 
-In networkx , **Graph()** or **DiGraph()** classes can be used to represent bipartite graphs. However, you have to keep track of which set each node belongs to, and make sure that **there is no edge between nodes of the same set**. 
+K-clique clustering expands upon this notion of cliques by forming clusters of nodes that are within k edges from one another. As with the simple cliques shown above, all nodes within these clique clusters must be within k edges from any other node within the clique. 
 
-<img src="bp2.png" width=400>
-The convention used in NetworkX is to use a **node attribute** named **bipartite** with values 0 or 1 to identify the sets each node belongs to. 
+The Girvan–Newman algorithm takes the opposite approach. It starts with the full network and then begins removing nodes with the largest betweeness, observing how the graph then breaks into smaller clusters. Due to this approach, the graph will gradually be broken into smaller and smaller clusters until every node forms it's own cluster. As a result, determining an appropriate threshold to terminate the algorithm where groups are well formed and neither too general nor too specific can be a challenge.
+
+## Implementing Clustering with NetworkX
+
+## K-Clique Clustering in NetworkX
 
 
 ```python
 import networkx as nx
-B = nx.Graph()
-
-# Add nodes with the node attribute "bipartite"
-B.add_nodes_from([1, 2, 3, 4], bipartite=0)
-B.add_nodes_from(['a', 'b', 'c'], bipartite=1)
-
-# Add edges only between nodes of opposite node sets
-B.add_edges_from([(1, 'a'), (1, 'b'), (2, 'b'), (2, 'c'), (3, 'c'), (4, 'a')])
-```
-
-Analyzing bipartite graphs in networkx require a container with all the nodes that belong to one set, in addition to the bipartite graph $B$. If $B$ is connected, you can find the two node sets using a two-coloring algorithm:
-
-
-```python
-print(nx.is_connected(B))
-top_nodes, bottom_nodes = bipartite.sets(B)
-print(top_nodes, bottom_nodes)
-```
-
-    True
-    {1, 2, 3, 4} {'a', 'b', 'c'}
-
-
-OR - Using the bipartite node attribute, you can easily get the two node sets
-
-
-```python
-top_nodes = {n for n, d in B.nodes(data=True) if d['bipartite']==0}
-bottom_nodes = set(B) - top_nodes
-print(top_nodes, bottom_nodes)
-```
-
-    {1, 2, 3, 4} {'a', 'b', 'c'}
-
-
-So you can easily use the bipartite algorithms that require, as an argument, a container with all nodes that belong to one node set:
-
-
-```python
-bipartite.density(B, top_nodes)
-```
-
-
-
-
-    0.5
-
-
-
-All bipartite graph generators in networkx build bipartite graphs with the bipartite node attribute. Thus, you can use the same approach as we saw above. 
-
-
-```python
-# Generate random bi-partite graph 
-RB = bipartite.random_graph(10, 10, 0.3)
-RB_top = {n for n, d in RB.nodes(data=True) if d['bipartite']==0}
-RB_bottom = set(RB) - RB_top
-
 import matplotlib.pyplot as plt
-plt.figure(figsize=(8, 4))
-nx.draw(RB, with_labels=True)
-RB.nodes(data=True)
+%matplotlib inline
+G = nx.read_gexf('ga_graph.gexf')
+plt.figure(figsize=(12,8))
+nx.draw(G, with_labels=True, node_color="#1cf0c7",
+        alpha=.75, font_weight="bold", node_size=2*10**3, pos=nx.spring_layout(G, seed=4))
+```
+
+
+![png](index_files/index_2_0.png)
+
+
+
+```python
+c = list(nx.algorithms.community.k_clique_communities(G, k=2))
+c
 ```
 
 
 
 
-    NodeDataView({0: {'bipartite': 0}, 1: {'bipartite': 0}, 2: {'bipartite': 0}, 3: {'bipartite': 0}, 4: {'bipartite': 0}, 5: {'bipartite': 0}, 6: {'bipartite': 0}, 7: {'bipartite': 0}, 8: {'bipartite': 0}, 9: {'bipartite': 0}, 10: {'bipartite': 1}, 11: {'bipartite': 1}, 12: {'bipartite': 1}, 13: {'bipartite': 1}, 14: {'bipartite': 1}, 15: {'bipartite': 1}, 16: {'bipartite': 1}, 17: {'bipartite': 1}, 18: {'bipartite': 1}, 19: {'bipartite': 1}})
+    [frozenset({'addison',
+                'altman',
+                'arizona',
+                'avery',
+                'colin',
+                'denny',
+                'derek',
+                'finn',
+                'grey',
+                'hank',
+                'izzie',
+                'karev',
+                'kepner',
+                'lexi',
+                'mrs. seabury',
+                'nancy',
+                "o'malley",
+                'olivia',
+                'owen',
+                'preston',
+                'sloan',
+                'steve',
+                'torres',
+                'yang'}),
+     frozenset({'adele', 'chief', 'ellis grey', 'susan grey', 'thatch grey'}),
+     frozenset({'bailey', 'ben', 'tucker'})]
 
 
-
-
-![png](index_files/index_11_1.png)
-
-
-## Davis Club
-
-Let's use the data collected by Davis et al. in 1930s about the observed attendance at 14 social events by 18 women in a Southern state of the USA. [Click here ](https://networkx.github.io/documentation/stable/auto_examples/algorithms/plot_davis_club.html) to see the implementation in networkx.  The nodes in the graph are both women and events, and each women is linked to the events that she attended.
 
 
 ```python
-D = nx.davis_southern_women_graph()
-plt.figure(figsize=(10,5))
-nx.draw(D, with_labels=True)
-list(D.nodes(data=True))
-```
-
-
-
-
-    [('Evelyn Jefferson', {'bipartite': 0}),
-     ('Laura Mandeville', {'bipartite': 0}),
-     ('Theresa Anderson', {'bipartite': 0}),
-     ('Brenda Rogers', {'bipartite': 0}),
-     ('Charlotte McDowd', {'bipartite': 0}),
-     ('Frances Anderson', {'bipartite': 0}),
-     ('Eleanor Nye', {'bipartite': 0}),
-     ('Pearl Oglethorpe', {'bipartite': 0}),
-     ('Ruth DeSand', {'bipartite': 0}),
-     ('Verne Sanderson', {'bipartite': 0}),
-     ('Myra Liddel', {'bipartite': 0}),
-     ('Katherina Rogers', {'bipartite': 0}),
-     ('Sylvia Avondale', {'bipartite': 0}),
-     ('Nora Fayette', {'bipartite': 0}),
-     ('Helen Lloyd', {'bipartite': 0}),
-     ('Dorothy Murchison', {'bipartite': 0}),
-     ('Olivia Carleton', {'bipartite': 0}),
-     ('Flora Price', {'bipartite': 0}),
-     ('E1', {'bipartite': 1}),
-     ('E2', {'bipartite': 1}),
-     ('E3', {'bipartite': 1}),
-     ('E4', {'bipartite': 1}),
-     ('E5', {'bipartite': 1}),
-     ('E6', {'bipartite': 1}),
-     ('E7', {'bipartite': 1}),
-     ('E8', {'bipartite': 1}),
-     ('E9', {'bipartite': 1}),
-     ('E10', {'bipartite': 1}),
-     ('E11', {'bipartite': 1}),
-     ('E12', {'bipartite': 1}),
-     ('E13', {'bipartite': 1}),
-     ('E14', {'bipartite': 1})]
-
-
-
-
-![png](index_files/index_13_1.png)
-
-
-See how all the women are connected only through the events E1-14 that they have attended. There is no direct link between any women. 
-
-## Graph Projections
-
-We can extaract the uni-partite graph with only women using **Graph Projections**. We can weight the edges of the projection using different criteria, for instance, we can make the weight of an edge to represent the number of event that the two women attended. See NetworkX documentation for [bipartite projections](https://networkx.github.io/documentation/networkx-1.9.1/reference/generated/networkx.algorithms.bipartite.projection.weighted_projected_graph.html). In such a graph, all women , who attended the same event(s) will be connected together as neighbors. 
-
-
-```python
-females = {n for n, d in D.nodes(data=True) if d['bipartite']==0}
-Fem_Graph = bipartite.weighted_projected_graph(D, females)
+colors = [("teal","#1cf0c7"),
+         ( "workzone_yellow","#ffd43d"),
+         ("light-blue","#00b3e6"),
+         ("medium-blue","#32cefe"),
+         ("gray","#efefef"),
+         ("slate","#2b2b2b"),
+         ("dark-blue", "#144ff")]
+color_dict = dict(colors)
 ```
 
 
 ```python
-plt.figure(figsize=(10, 7))
-nx.draw(Fem_Graph, with_labels=True, node_size=2000, node_color = 'red', edge_color='grey',width=2, alpha=0.6, font_size=20)
-print(list(Fem_Graph.nodes()))
+fig = plt.figure(figsize=(12,8))
+for n, ci in enumerate(c):
+    ci = G.subgraph(ci)
+    nx.draw(ci, with_labels=True, node_color=colors[n][1],
+            alpha=.75, font_weight="bold", pos=nx.spring_layout(G, seed=4))
 ```
 
-    ['Verne Sanderson', 'Frances Anderson', 'Helen Lloyd', 'Myra Liddel', 'Theresa Anderson', 'Evelyn Jefferson', 'Olivia Carleton', 'Dorothy Murchison', 'Ruth DeSand', 'Katherina Rogers', 'Flora Price', 'Brenda Rogers', 'Charlotte McDowd', 'Sylvia Avondale', 'Nora Fayette', 'Eleanor Nye', 'Laura Mandeville', 'Pearl Oglethorpe']
+
+![png](index_files/index_5_0.png)
 
 
+## The Girvan Newman Algorithm in NetworkX
 
-![png](index_files/index_17_1.png)
+As discussed, the Girvan Newman algorithm works by successively removing edges which are considered to be strong ties between subsets in the community. Typically, this is the betweeness metric. Since you are removing edges in the algorithm, betweeness is calculated for the edges as oppossed to the nodes, as you have previously seen. The process is nearly identical though. First, the shortest paths between all nodes are computed using Dijkstra's algorithm. From there, an edges betweeness is the fraction of these paths that the edge is part of.
 
-
-So now we see a lot of new edges. This approach of taking projections can help us create uni-partite graphs to simply analysis activities in most cases. The number of interactions are reflected as edge weights as we can see below:
+Implementing the algorithm with NetworkX is exceedingly straightforward. See the documentation for passing alternative metrics then betweeness through the algorithm.
 
 
 ```python
-list(Fem_Graph.edges(data=True))
+c_gn = list(nx.algorithms.community.centrality.girvan_newman(G))
+print(len(c_gn), c_gn[:3])
 ```
 
+    29 [({'finn', 'derek', 'mrs. seabury', 'kepner', 'nancy', 'addison', 'avery', 'grey', 'torres', 'izzie', 'olivia', 'lexi', 'karev', "o'malley", 'denny', 'arizona', 'hank', 'steve', 'sloan'}, {'ellis grey', 'chief', 'thatch grey', 'adele', 'susan grey'}, {'ben', 'bailey', 'tucker'}, {'owen', 'colin', 'preston', 'altman', 'yang'}), ({'addison', 'avery', 'nancy', 'karev', "o'malley", 'denny', 'arizona', 'hank', 'mrs. seabury', 'torres', 'kepner', 'olivia', 'izzie', 'sloan', 'lexi'}, {'ellis grey', 'chief', 'thatch grey', 'adele', 'susan grey'}, {'ben', 'bailey', 'tucker'}, {'finn', 'derek', 'steve', 'grey'}, {'owen', 'colin', 'preston', 'altman', 'yang'}), ({'addison', 'avery', 'nancy', 'karev', "o'malley", 'arizona', 'mrs. seabury', 'torres', 'kepner', 'olivia', 'sloan', 'lexi'}, {'ellis grey', 'chief', 'thatch grey', 'adele', 'susan grey'}, {'hank', 'denny', 'izzie'}, {'ben', 'bailey', 'tucker'}, {'finn', 'derek', 'steve', 'grey'}, {'owen', 'colin', 'preston', 'altman', 'yang'})]
 
 
-
-    [('Verne Sanderson', 'Frances Anderson', {'weight': 1}),
-     ('Verne Sanderson', 'Myra Liddel', {'weight': 3}),
-     ('Verne Sanderson', 'Theresa Anderson', {'weight': 3}),
-     ('Verne Sanderson', 'Olivia Carleton', {'weight': 1}),
-     ('Verne Sanderson', 'Ruth DeSand', {'weight': 3}),
-     ('Verne Sanderson', 'Brenda Rogers', {'weight': 2}),
-     ('Verne Sanderson', 'Nora Fayette', {'weight': 3}),
-     ('Verne Sanderson', 'Katherina Rogers', {'weight': 3}),
-     ('Verne Sanderson', 'Sylvia Avondale', {'weight': 4}),
-     ('Verne Sanderson', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Verne Sanderson', 'Helen Lloyd', {'weight': 3}),
-     ('Verne Sanderson', 'Evelyn Jefferson', {'weight': 2}),
-     ('Verne Sanderson', 'Dorothy Murchison', {'weight': 2}),
-     ('Verne Sanderson', 'Flora Price', {'weight': 1}),
-     ('Verne Sanderson', 'Charlotte McDowd', {'weight': 1}),
-     ('Verne Sanderson', 'Eleanor Nye', {'weight': 2}),
-     ('Verne Sanderson', 'Laura Mandeville', {'weight': 2}),
-     ('Frances Anderson', 'Myra Liddel', {'weight': 1}),
-     ('Frances Anderson', 'Theresa Anderson', {'weight': 4}),
-     ('Frances Anderson', 'Ruth DeSand', {'weight': 2}),
-     ('Frances Anderson', 'Brenda Rogers', {'weight': 4}),
-     ('Frances Anderson', 'Nora Fayette', {'weight': 1}),
-     ('Frances Anderson', 'Katherina Rogers', {'weight': 1}),
-     ('Frances Anderson', 'Sylvia Avondale', {'weight': 1}),
-     ('Frances Anderson', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Frances Anderson', 'Helen Lloyd', {'weight': 1}),
-     ('Frances Anderson', 'Evelyn Jefferson', {'weight': 4}),
-     ('Frances Anderson', 'Dorothy Murchison', {'weight': 1}),
-     ('Frances Anderson', 'Charlotte McDowd', {'weight': 2}),
-     ('Frances Anderson', 'Eleanor Nye', {'weight': 3}),
-     ('Frances Anderson', 'Laura Mandeville', {'weight': 4}),
-     ('Helen Lloyd', 'Myra Liddel', {'weight': 3}),
-     ('Helen Lloyd', 'Theresa Anderson', {'weight': 2}),
-     ('Helen Lloyd', 'Olivia Carleton', {'weight': 1}),
-     ('Helen Lloyd', 'Ruth DeSand', {'weight': 2}),
-     ('Helen Lloyd', 'Brenda Rogers', {'weight': 2}),
-     ('Helen Lloyd', 'Nora Fayette', {'weight': 4}),
-     ('Helen Lloyd', 'Katherina Rogers', {'weight': 3}),
-     ('Helen Lloyd', 'Sylvia Avondale', {'weight': 4}),
-     ('Helen Lloyd', 'Pearl Oglethorpe', {'weight': 1}),
-     ('Helen Lloyd', 'Evelyn Jefferson', {'weight': 1}),
-     ('Helen Lloyd', 'Dorothy Murchison', {'weight': 1}),
-     ('Helen Lloyd', 'Flora Price', {'weight': 1}),
-     ('Helen Lloyd', 'Charlotte McDowd', {'weight': 1}),
-     ('Helen Lloyd', 'Eleanor Nye', {'weight': 2}),
-     ('Helen Lloyd', 'Laura Mandeville', {'weight': 2}),
-     ('Myra Liddel', 'Theresa Anderson', {'weight': 2}),
-     ('Myra Liddel', 'Olivia Carleton', {'weight': 1}),
-     ('Myra Liddel', 'Ruth DeSand', {'weight': 2}),
-     ('Myra Liddel', 'Brenda Rogers', {'weight': 1}),
-     ('Myra Liddel', 'Nora Fayette', {'weight': 3}),
-     ('Myra Liddel', 'Katherina Rogers', {'weight': 4}),
-     ('Myra Liddel', 'Sylvia Avondale', {'weight': 4}),
-     ('Myra Liddel', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Myra Liddel', 'Evelyn Jefferson', {'weight': 2}),
-     ('Myra Liddel', 'Dorothy Murchison', {'weight': 2}),
-     ('Myra Liddel', 'Flora Price', {'weight': 1}),
-     ('Myra Liddel', 'Eleanor Nye', {'weight': 1}),
-     ('Myra Liddel', 'Laura Mandeville', {'weight': 1}),
-     ('Theresa Anderson', 'Olivia Carleton', {'weight': 1}),
-     ('Theresa Anderson', 'Ruth DeSand', {'weight': 4}),
-     ('Theresa Anderson', 'Brenda Rogers', {'weight': 6}),
-     ('Theresa Anderson', 'Nora Fayette', {'weight': 3}),
-     ('Theresa Anderson', 'Katherina Rogers', {'weight': 2}),
-     ('Theresa Anderson', 'Sylvia Avondale', {'weight': 3}),
-     ('Theresa Anderson', 'Pearl Oglethorpe', {'weight': 3}),
-     ('Theresa Anderson', 'Evelyn Jefferson', {'weight': 7}),
-     ('Theresa Anderson', 'Dorothy Murchison', {'weight': 2}),
-     ('Theresa Anderson', 'Flora Price', {'weight': 1}),
-     ('Theresa Anderson', 'Charlotte McDowd', {'weight': 4}),
-     ('Theresa Anderson', 'Eleanor Nye', {'weight': 4}),
-     ('Theresa Anderson', 'Laura Mandeville', {'weight': 6}),
-     ('Evelyn Jefferson', 'Olivia Carleton', {'weight': 1}),
-     ('Evelyn Jefferson', 'Ruth DeSand', {'weight': 3}),
-     ('Evelyn Jefferson', 'Brenda Rogers', {'weight': 6}),
-     ('Evelyn Jefferson', 'Nora Fayette', {'weight': 2}),
-     ('Evelyn Jefferson', 'Katherina Rogers', {'weight': 2}),
-     ('Evelyn Jefferson', 'Sylvia Avondale', {'weight': 2}),
-     ('Evelyn Jefferson', 'Pearl Oglethorpe', {'weight': 3}),
-     ('Evelyn Jefferson', 'Dorothy Murchison', {'weight': 2}),
-     ('Evelyn Jefferson', 'Flora Price', {'weight': 1}),
-     ('Evelyn Jefferson', 'Charlotte McDowd', {'weight': 3}),
-     ('Evelyn Jefferson', 'Eleanor Nye', {'weight': 3}),
-     ('Evelyn Jefferson', 'Laura Mandeville', {'weight': 6}),
-     ('Olivia Carleton', 'Dorothy Murchison', {'weight': 1}),
-     ('Olivia Carleton', 'Ruth DeSand', {'weight': 1}),
-     ('Olivia Carleton', 'Flora Price', {'weight': 2}),
-     ('Olivia Carleton', 'Nora Fayette', {'weight': 2}),
-     ('Olivia Carleton', 'Katherina Rogers', {'weight': 1}),
-     ('Olivia Carleton', 'Sylvia Avondale', {'weight': 1}),
-     ('Olivia Carleton', 'Pearl Oglethorpe', {'weight': 1}),
-     ('Dorothy Murchison', 'Ruth DeSand', {'weight': 2}),
-     ('Dorothy Murchison', 'Brenda Rogers', {'weight': 1}),
-     ('Dorothy Murchison', 'Nora Fayette', {'weight': 1}),
-     ('Dorothy Murchison', 'Katherina Rogers', {'weight': 2}),
-     ('Dorothy Murchison', 'Sylvia Avondale', {'weight': 2}),
-     ('Dorothy Murchison', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Dorothy Murchison', 'Flora Price', {'weight': 1}),
-     ('Dorothy Murchison', 'Eleanor Nye', {'weight': 1}),
-     ('Dorothy Murchison', 'Laura Mandeville', {'weight': 1}),
-     ('Ruth DeSand', 'Brenda Rogers', {'weight': 3}),
-     ('Ruth DeSand', 'Nora Fayette', {'weight': 2}),
-     ('Ruth DeSand', 'Katherina Rogers', {'weight': 2}),
-     ('Ruth DeSand', 'Sylvia Avondale', {'weight': 3}),
-     ('Ruth DeSand', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Ruth DeSand', 'Flora Price', {'weight': 1}),
-     ('Ruth DeSand', 'Charlotte McDowd', {'weight': 2}),
-     ('Ruth DeSand', 'Eleanor Nye', {'weight': 3}),
-     ('Ruth DeSand', 'Laura Mandeville', {'weight': 3}),
-     ('Katherina Rogers', 'Brenda Rogers', {'weight': 1}),
-     ('Katherina Rogers', 'Nora Fayette', {'weight': 5}),
-     ('Katherina Rogers', 'Sylvia Avondale', {'weight': 6}),
-     ('Katherina Rogers', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Katherina Rogers', 'Flora Price', {'weight': 1}),
-     ('Katherina Rogers', 'Eleanor Nye', {'weight': 1}),
-     ('Katherina Rogers', 'Laura Mandeville', {'weight': 1}),
-     ('Flora Price', 'Nora Fayette', {'weight': 2}),
-     ('Flora Price', 'Sylvia Avondale', {'weight': 1}),
-     ('Flora Price', 'Pearl Oglethorpe', {'weight': 1}),
-     ('Brenda Rogers', 'Nora Fayette', {'weight': 2}),
-     ('Brenda Rogers', 'Sylvia Avondale', {'weight': 2}),
-     ('Brenda Rogers', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Brenda Rogers', 'Charlotte McDowd', {'weight': 4}),
-     ('Brenda Rogers', 'Eleanor Nye', {'weight': 4}),
-     ('Brenda Rogers', 'Laura Mandeville', {'weight': 6}),
-     ('Charlotte McDowd', 'Sylvia Avondale', {'weight': 1}),
-     ('Charlotte McDowd', 'Nora Fayette', {'weight': 1}),
-     ('Charlotte McDowd', 'Eleanor Nye', {'weight': 2}),
-     ('Charlotte McDowd', 'Laura Mandeville', {'weight': 3}),
-     ('Sylvia Avondale', 'Nora Fayette', {'weight': 6}),
-     ('Sylvia Avondale', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Sylvia Avondale', 'Eleanor Nye', {'weight': 2}),
-     ('Sylvia Avondale', 'Laura Mandeville', {'weight': 2}),
-     ('Nora Fayette', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Nora Fayette', 'Eleanor Nye', {'weight': 2}),
-     ('Nora Fayette', 'Laura Mandeville', {'weight': 2}),
-     ('Eleanor Nye', 'Pearl Oglethorpe', {'weight': 2}),
-     ('Eleanor Nye', 'Laura Mandeville', {'weight': 4}),
-     ('Laura Mandeville', 'Pearl Oglethorpe', {'weight': 2})]
-
-
-
-## Bipartite Centrality Measures 
-
-Bipartite centrality uses different algorithms than unipartite graphs because the normalization of the measures is different. In unipartite networks the maximum degree of a node is $n-1$ where $n$ is the total number of nodes of a graph, but in a bipartite graph a node maximum degree is only the total number of nodes in the opposite set, that is, the maximum degree for a woman in our graph is the number of events. 
-
-In order to use these functions you have to pass as an argument a set with all nodes in one bipartite set
-### Degree Centrality
+> Comment: Note how there is a large number of results! Each is a list of clusters formed by removing the `n` strongest edges according to the metric specified.
 
 
 ```python
-from operator import itemgetter
-cent = bipartite.degree_centrality(D, females)
-sorted(cent.items(), key=itemgetter(1), reverse=True)
+c_gn[0]
 ```
 
 
 
 
-    [('E8', 0.7777777777777777),
-     ('E9', 0.6666666666666666),
-     ('Theresa Anderson', 0.5714285714285714),
-     ('Nora Fayette', 0.5714285714285714),
-     ('Evelyn Jefferson', 0.5714285714285714),
-     ('E7', 0.5555555555555556),
-     ('Brenda Rogers', 0.5),
-     ('Sylvia Avondale', 0.5),
-     ('Laura Mandeville', 0.5),
-     ('E6', 0.4444444444444444),
-     ('E5', 0.4444444444444444),
-     ('Katherina Rogers', 0.42857142857142855),
-     ('Helen Lloyd', 0.3571428571428571),
-     ('E12', 0.3333333333333333),
-     ('E3', 0.3333333333333333),
-     ('Frances Anderson', 0.2857142857142857),
-     ('Myra Liddel', 0.2857142857142857),
-     ('Ruth DeSand', 0.2857142857142857),
-     ('Verne Sanderson', 0.2857142857142857),
-     ('Charlotte McDowd', 0.2857142857142857),
-     ('Eleanor Nye', 0.2857142857142857),
-     ('E10', 0.2777777777777778),
-     ('E11', 0.2222222222222222),
-     ('E4', 0.2222222222222222),
-     ('Pearl Oglethorpe', 0.21428571428571427),
-     ('E2', 0.16666666666666666),
-     ('E14', 0.16666666666666666),
-     ('E13', 0.16666666666666666),
-     ('E1', 0.16666666666666666),
-     ('Olivia Carleton', 0.14285714285714285),
-     ('Dorothy Murchison', 0.14285714285714285),
-     ('Flora Price', 0.14285714285714285)]
+    ({'addison',
+      'arizona',
+      'avery',
+      'denny',
+      'derek',
+      'finn',
+      'grey',
+      'hank',
+      'izzie',
+      'karev',
+      'kepner',
+      'lexi',
+      'mrs. seabury',
+      'nancy',
+      "o'malley",
+      'olivia',
+      'sloan',
+      'steve',
+      'torres'},
+     {'adele', 'chief', 'ellis grey', 'susan grey', 'thatch grey'},
+     {'bailey', 'ben', 'tucker'},
+     {'altman', 'colin', 'owen', 'preston', 'yang'})
 
 
-
-### Betweenness Centrality
 
 
 ```python
-centb = bipartite.betweenness_centrality(D, females)
-sorted(centb.items(), key=itemgetter(1), reverse=True)
+colors = [("teal","#1cf0c7"),
+         ( "workzone_yellow","#ffd43d"),
+         ("light-blue","#00b3e6"),
+         ("medium-blue","#32cefe"),
+         ("gray","#efefef"),
+         ("slate","#2b2b2b"),
+         ("dark-blue", "#1443ff")]
 ```
 
-
-
-
-    [('E8', 0.24381946234957552),
-     ('E9', 0.22551359177204106),
-     ('E7', 0.12950174424519842),
-     ('Nora Fayette', 0.11346136204298476),
-     ('Evelyn Jefferson', 0.09658472108029267),
-     ('Theresa Anderson', 0.08759468547944677),
-     ('Sylvia Avondale', 0.07170914508501829),
-     ('E6', 0.06501635047516072),
-     ('Laura Mandeville', 0.05135761326872536),
-     ('Brenda Rogers', 0.0494865998160072),
-     ('Katherina Rogers', 0.047362754029819695),
-     ('Helen Lloyd', 0.04238754006434827),
-     ('E5', 0.03769444252500667),
-     ('E11', 0.01966539088919154),
-     ('E3', 0.01822439085252718),
-     ('E12', 0.018094182051395145),
-     ('Ruth DeSand', 0.016783108139791406),
-     ('Myra Liddel', 0.016344348365012626),
-     ('Verne Sanderson', 0.015737665757646964),
-     ('E10', 0.011442302600971925),
-     ('Frances Anderson', 0.01071434286960598),
-     ('Charlotte McDowd', 0.010596096282664414),
-     ('Eleanor Nye', 0.00944412334473028),
-     ('E4', 0.0077020526738029406),
-     ('Pearl Oglethorpe', 0.006800323334013807),
-     ('Olivia Carleton', 0.005054505236263333),
-     ('Flora Price', 0.005054505236263333),
-     ('E13', 0.002240655987795576),
-     ('E14', 0.002240655987795576),
-     ('E1', 0.002154310782629367),
-     ('E2', 0.0020886968954039286),
-     ('Dorothy Murchison', 0.0019535268594996565)]
-
-
-
-### Closeness Centrality 
+Since there are so many individual clusters, take a look at the first four results of removing successive edges:
 
 
 ```python
-centc = bipartite.closeness_centrality(D, females)
-sorted(centc.items(), key=itemgetter(1), reverse=True)
+fig, axes = plt.subplots(ncols=2, nrows=2, figsize=(18,18))
+for n, cs in enumerate(c_gn[:4]):
+    i = n//2
+    j = n%2
+    ax = axes[i][j]
+    ax.set_title("Clusters with {} Edges Removed".format(n+1))
+    #Multiple Clusters per Groups
+    for n2, c in enumerate(cs):
+        ci = G.subgraph(c)
+        color = colors[n2][1]
+        nx.draw(ci, with_labels=True, node_color=color, ax=ax,
+                alpha=.75, font_weight="bold", pos=nx.spring_layout(G, seed=4));
 ```
 
 
+![png](index_files/index_12_0.png)
 
 
-    [('E8', 0.8461538461538461),
-     ('Theresa Anderson', 0.8),
-     ('Nora Fayette', 0.8),
-     ('Evelyn Jefferson', 0.8),
-     ('E9', 0.7857142857142857),
-     ('Sylvia Avondale', 0.7741935483870968),
-     ('E7', 0.7333333333333333),
-     ('Brenda Rogers', 0.7272727272727273),
-     ('Katherina Rogers', 0.7272727272727273),
-     ('Helen Lloyd', 0.7272727272727273),
-     ('Laura Mandeville', 0.7272727272727273),
-     ('Ruth DeSand', 0.7058823529411765),
-     ('Verne Sanderson', 0.7058823529411765),
-     ('E6', 0.6875),
-     ('Myra Liddel', 0.6857142857142857),
-     ('Frances Anderson', 0.6666666666666666),
-     ('Pearl Oglethorpe', 0.6666666666666666),
-     ('Eleanor Nye', 0.6666666666666666),
-     ('Dorothy Murchison', 0.6486486486486487),
-     ('Charlotte McDowd', 0.6),
-     ('E5', 0.5945945945945946),
-     ('Olivia Carleton', 0.5853658536585366),
-     ('Flora Price', 0.5853658536585366),
-     ('E12', 0.5641025641025641),
-     ('E3', 0.5641025641025641),
-     ('E10', 0.55),
-     ('E11', 0.5365853658536586),
-     ('E4', 0.5365853658536586),
-     ('E2', 0.5238095238095238),
-     ('E14', 0.5238095238095238),
-     ('E13', 0.5238095238095238),
-     ('E1', 0.5238095238095238)]
+And of course if you look at the last set, all of the nodes should be individually displayed, since all of the edges have been removed:
 
 
+```python
+cs = c_gn[-1]
+fig = plt.figure(figsize=(12,12))
+for c in cs:
+    ci = G.subgraph(c)
+    nx.draw(ci, with_labels=True, node_color=color_dict['light-blue'],
+                alpha=.75, font_weight="bold", pos=nx.spring_layout(G, seed=4));
+```
 
-## Summary 
-In this lesson we looked at Bipartite graphs and how to define, process and simplify such graphs in networkx. Such graphs represent most social interactions , whether real life or on-line. Being able to process such data is the first step towards developing recommendation systems in graph networks as we shall we in our end of day lab. 
+
+![png](index_files/index_14_0.png)
+
+
+## Additional Resources
+
+To see the specific NetworkX documentation regarding the K-clique and Girman-Newman algorithms demonstrated in this lesson see the links below.
+
+* [K-Clique Clustering Documentation](https://networkx.github.io/documentation/networkx-1.10/reference/generated/networkx.algorithms.community.kclique.k_clique_communities.html)
+* [Girman-Newman Documentation](https://pelegm-networkx.readthedocs.io/en/latest/reference/generated/networkx.algorithms.community.centrality.girvan_newman.html)
+
+## Summary
+
+In this lesson, you explored two algorithmic approaches to clustering networks. Such methods are essential for dissecting large networks into small constituencies for deeper analysis and comparison. From here, you'll further practice clustering with an applied analysis to a social network.
